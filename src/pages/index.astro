@@ -5,6 +5,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
     <title>CineApp</title>
   </head>
   <body>
@@ -14,44 +15,103 @@
       <p>Descubrí las mejores películas</p>
     </header>
 
-    <main>
-      <section id="busqueda">
-        <input type="text" placeholder="Buscar película..." />
-      </section>
+  <main>
+    <section id="busqueda">
+      <input id="inputBusqueda" type="text" placeholder="Buscar película..." />
+    </section>
 
-      <section id="filtros">
-        <button>Todas</button>
-        <button>Acción</button>
-        <button>Comedia</button>
-        <button>Terror</button>
-        <button>Drama</button>
-      </section>
+    <section id="filtros">
+      <button class="filtro activo" data-id="28">Acción</button>
+      <button class="filtro" data-id="35">Comedia</button>
+      <button class="filtro" data-id="27">Terror</button>
+      <button class="filtro" data-id="18">Drama</button>
+      <button class="filtro" data-id="">Todas</button>
+    </section>
 
-      <section id="peliculas">
-        <div class="card">
-          <img src="https://placehold.co/200x300" alt="Película" />
-          <h3>Nombre película</h3>
-          <p>⭐ 8.5</p>
-        </div>
-        <div class="card">
-          <img src="https://placehold.co/200x300" alt="Película" />
-          <h3>Nombre película</h3>
-          <p>⭐ 7.2</p>
-        </div>
-        <div class="card">
-          <img src="https://placehold.co/200x300" alt="Película" />
-          <h3>Nombre película</h3>
-          <p>⭐ 9.1</p>
-        </div>
-      </section>
-    </main>
+    <section id="peliculas">
+      <p>Cargando películas...</p>
+    </section>
+  </main>
 
     <footer>
-    
+      <p>el juego</p>
     </footer>
 
   </body>
 </html>
+
+<script>
+  // @ts-nocheck
+  document.addEventListener("DOMContentLoaded", () => {
+
+    console.log("input:", document.getElementById("inputBusqueda"));
+    console.log("contenedor:", document.getElementById("peliculas"));
+    console.log("filtros:", document.querySelectorAll(".filtro"));
+
+    const TOKEN = import.meta.env.PUBLIC_TMDB_TOKEN;
+    const contenedor = document.getElementById("peliculas");
+    const inputBusqueda = document.getElementById("inputBusqueda");
+    const botonesFiltro = document.querySelectorAll(".filtro");
+
+    let generoActivo = "28";
+
+async function traerPeliculas(genero = "", busqueda = "") {
+      contenedor.innerHTML = "<p>Cargando películas...</p>";
+
+      let url = "";
+      if (busqueda) {
+        url = `https://api.themoviedb.org/3/search/movie?query=${busqueda}&language=es-AR`;
+      } else if (genero) {
+        url = `https://api.themoviedb.org/3/discover/movie?with_genres=${genero}&language=es-AR&sort_by=popularity.desc&vote_count.gte=1000`;
+      } else {
+        url = `https://api.themoviedb.org/3/trending/movie/week?language=es-AR`;
+      }
+
+      const respuesta = await fetch(url, {
+        headers: { Authorization: `Bearer ${TOKEN}` }
+      });
+      const datos = await respuesta.json();
+      mostrarPeliculas(datos.results);
+    }
+
+    function mostrarPeliculas(peliculas) {
+      contenedor.innerHTML = "";
+      if (!peliculas || peliculas.length === 0) {
+        contenedor.innerHTML = "<p>No se encontraron películas.</p>";
+        return;
+      }
+      peliculas.forEach((pelicula) => {
+        const imagen = pelicula.poster_path
+          ? `https://image.tmdb.org/t/p/w300${pelicula.poster_path}`
+          : "https://placehold.co/200x300";
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.innerHTML = `
+          <img src="${imagen}" alt="${pelicula.title}" />
+          <h3>${pelicula.title}</h3>
+          <p>⭐ ${pelicula.vote_average?.toFixed(1) ?? "N/A"}</p>
+        `;
+        contenedor.appendChild(card);
+      });
+    }
+
+    botonesFiltro.forEach((boton) => {
+      boton.addEventListener("click", () => {
+        botonesFiltro.forEach((b) => b.classList.remove("activo"));
+        boton.classList.add("activo");
+        generoActivo = boton.dataset.id;
+        traerPeliculas(generoActivo, "");
+      });
+    });
+
+    inputBusqueda.addEventListener("input", () => {
+      const texto = inputBusqueda.value.trim();
+      traerPeliculas("", texto);
+    });
+
+    traerPeliculas(generoActivo);
+  });
+</script>
 
 <style>
   * {
@@ -63,7 +123,7 @@
   body {
     background-color: #0f0f0f;
     color: #ffffff;
-    font-family: Arial, sans-serif;
+    font-family: 'Poppins', sans-serif;
   }
 
   header {
@@ -97,6 +157,7 @@
     background-color: #1a1a1a;
     color: white;
     border: 1px solid #444;
+    font-family: Poppins, sans-serif;
   }
 
   #filtros {
@@ -115,6 +176,7 @@
     color: white;
     cursor: pointer;
     font-size: 0.9rem;
+    font-family: Poppins, sans-serif;
   }
 
   #filtros button:hover {
@@ -123,9 +185,10 @@
 
   #peliculas {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 250px));
+    gap: 2rem;
     padding: 2rem;
+    justify-content: center;
   }
 
   .card {
@@ -142,6 +205,8 @@
 
   .card img {
     width: 100%;
+    height: 280px;
+    object-fit: cover;
   }
 
   .card h3 {
